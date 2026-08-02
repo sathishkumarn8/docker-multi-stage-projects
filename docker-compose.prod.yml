@@ -1,0 +1,145 @@
+# Docker Compose production configuration
+# Extends the base docker-compose.yml for production environment
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+
+version: '3.8'
+
+services:
+  # ========================================================================
+  # Application Service (Production)
+  # ========================================================================
+  app:
+    # No volume mounts - immutable containers
+    # No exposed ports - use reverse proxy/load balancer
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1024M
+        reservations:
+          cpus: '1'
+          memory: 512M
+    
+    # Restart policy for high availability
+    restart: always
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=app"
+    
+    # Labels for monitoring and orchestration
+    labels:
+      - "com.example.app.version=1.0.0"
+      - "com.example.app.environment=production"
+  
+  # ========================================================================
+  # PostgreSQL Database Service (Production)
+  # ========================================================================
+  db:
+    # Production-specific configuration
+    environment:
+      POSTGRES_INITDB_ARGS: "-c shared_buffers=256MB -c max_connections=200 -c work_mem=16MB"
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+    
+    # Restart policy
+    restart: always
+    
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=db"
+    
+    # No port exposure - only accessible from internal network
+    # Removed ports section entirely for security
+  
+  # ========================================================================
+  # Redis Cache Service (Production)
+  # ========================================================================
+  cache:
+    # Production-specific configuration
+    command: >
+      redis-server
+      --appendonly yes
+      --requirepass ${REDIS_PASSWORD:-redis-password}
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    
+    # Restart policy
+    restart: always
+    
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=cache"
+    
+    # No port exposure - only accessible from internal network
+    # Removed ports section entirely for security
+  
+  # ========================================================================
+  # Optional: Monitoring with Prometheus
+  # ========================================================================
+  # Uncomment to enable prometheus monitoring
+  # prometheus:
+  #   image: prom/prometheus:latest
+  #   container_name: prometheus-container
+  #   ports:
+  #     - "9090:9090"
+  #   networks:
+  #     - app-network
+  #   volumes:
+  #     - ./prometheus.yml:/etc/prometheus/prometheus.yml
+  #     - prometheus-data:/prometheus
+  #   command:
+  #     - '--config.file=/etc/prometheus/prometheus.yml'
+  #   restart: always
+  #   labels:
+  #     - "com.example.monitoring=true"
+  
+  # ========================================================================
+  # Optional: Logging with ELK Stack
+  # ========================================================================
+  # Uncomment to enable centralized logging
+  # logstash:
+  #   image: docker.elastic.co/logstash/logstash:8.0.0
+  #   container_name: logstash-container
+  #   networks:
+  #     - app-network
+  #   depends_on:
+  #     - elasticsearch
+  #   environment:
+  #     - "LS_JAVA_OPTS=-Xmx256m -Xms256m"
+  #   restart: always
+
+# Note: Volumes and networks are inherited from docker-compose.yml
+# Override specific settings as needed for production

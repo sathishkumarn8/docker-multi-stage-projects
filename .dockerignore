@@ -1,0 +1,70 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# Node.js
+node_modules
+npm-debug.log
+npm-debug.log.*
+yarn-error.log
+.npm
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE and Editor
+.vscode
+.idea
+*.swp
+*.swo
+*.swn
+.DS_Store
+*.sublime-workspace
+*.sublime-project
+
+# Testing
+coverage
+.nyc_output
+.jest-cache
+
+# Build artifacts
+build
+dist
+out
+.cache
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# Documentation
+README.md
+LICENSE
+CHANGELOG.md
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.circleci
+Jenkinsfile
+
+# Miscellaneous
+.editorconfig
+.prettierrc
+.eslintrc*
+.lintstagedrc
+tsconfig.json
+.mocharc.js
+
+# Logs
+logs
+*.log
+
+# Temporary files
+tmp
+temp
+*.tmp

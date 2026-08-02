@@ -1,0 +1,109 @@
+# Docker Compose development configuration
+# Extends the base docker-compose.yml for development environment
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+version: '3.8'
+
+services:
+  # ========================================================================
+  # Application Service (Development)
+  # ========================================================================
+  app:
+    # Override build context for development
+    build:
+      context: .
+      dockerfile: Dockerfile
+      cache_from:
+        - docker-multi-stage-projects:latest
+    
+    # Ports exposed for local development
+    ports:
+      - "${APP_PORT:-3000}:3000"
+      - "9229:9229"  # Node.js debugger port
+    
+    # Volume mounts for live code reload
+    volumes:
+      - ./src:/app/src
+      - /app/node_modules  # Prevent node_modules from being overwritten
+    
+    # Environment variables for development
+    environment:
+      NODE_ENV: development
+      DEBUG: app:*
+      LOG_LEVEL: debug
+    
+    # Command override for development (with nodemon for auto-restart)
+    command: npm run dev
+    
+    # Restart policy
+    restart: on-failure
+  
+  # ========================================================================
+  # PostgreSQL Database Service (Development)
+  # ========================================================================
+  db:
+    # Expose port for local database access
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    
+    # Volume mount for database initialization scripts (optional)
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+  
+  # ========================================================================
+  # Redis Cache Service (Development)
+  # ========================================================================
+  cache:
+    # Expose port for local cache access
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    
+    # Volume mount for cache data
+    volumes:
+      - redis-data:/data
+  
+  # ========================================================================
+  # Optional Development Services
+  # ========================================================================
+  
+  # pgAdmin - PostgreSQL Administration Tool
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin-container
+    
+    ports:
+      - "5050:80"
+    
+    networks:
+      - app-network
+    
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+    
+    depends_on:
+      - db
+    
+    restart: unless-stopped
+  
+  # Redis Commander - Redis Administration Tool
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis-commander-container
+    
+    ports:
+      - "8081:8081"
+    
+    networks:
+      - app-network
+    
+    environment:
+      - REDIS_HOSTS=local:cache:6379
+    
+    depends_on:
+      - cache
+    
+    restart: unless-stopped
+
+# Note: Volumes and networks are inherited from docker-compose.yml
